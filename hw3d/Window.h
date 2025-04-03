@@ -18,11 +18,25 @@
 *	along with The Chili Direct3D Engine.  If not, see <http://www.gnu.org/licenses/>.    *
 ******************************************************************************************/
 #pragma once
+#include "WinException.h"
 #include "ChiliWin.h"
 
 
 class Window
 {
+public:
+	class Exception : public WinException
+	{
+	public:
+		Exception(int line, const char* file, HRESULT hr) noexcept;
+		const char* what() const noexcept override;
+		const char* GetType() const noexcept override;
+		static std::string TranslateErrorCode(HRESULT hr) noexcept;
+		HRESULT GetErrorCode() const noexcept;
+		std::string GetErrorString() const noexcept;
+	private:
+		HRESULT hr;
+	};
 private:
 	// singleton manages registration/cleanup of window class
 	class WindowClass
@@ -53,3 +67,6 @@ private:
 	int height;
 	HWND hWnd;
 };
+
+// error exception helper macro to write the constructor faster
+#define WND_EXCEPT(hr) Window::Exception(__LINE__,__FILE__,hr);
