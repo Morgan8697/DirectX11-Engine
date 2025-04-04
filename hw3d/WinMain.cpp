@@ -12,6 +12,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_CLOSE: 
 		PostQuitMessage(1); 
 		break;
+
 	case WM_KEYDOWN:
 		if (wParam == 'F')
 		{
@@ -49,7 +50,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	try 
 	{
 		Window wnd(800, 300, "First Window through framework");
-		Window wnd2(400, 600, "Second Window through framework");
 
 		// Message handling
 		MSG msg;
@@ -58,6 +58,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
+			if (wnd.kbd.KeyIsPressed(VK_MENU))
+			{
+				MessageBox(nullptr, "Something happened", "Alt was pressed", MB_OK | MB_ICONEXCLAMATION);
+			}
 		}
 		if (gResult == -1)
 		{
