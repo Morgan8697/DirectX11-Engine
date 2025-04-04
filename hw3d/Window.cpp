@@ -72,7 +72,7 @@ Window::Window(int width, int height, const char* name)
 	{
 		throw WND_LAST_EXCEPT();
 	}
-	AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE);
+
 	// create window & get hWnd
 	hWnd = CreateWindow(
 		WindowClass::GetName(), name,
