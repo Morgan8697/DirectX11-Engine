@@ -60,7 +60,7 @@ HINSTANCE Window::WindowClass::GetInstance() noexcept
 
 
 // Window Stuff
-Window::Window(int width, int height, const char* name)
+Window::Window(int width, int height, const char* name) : width(width), height(height)
 {
 	// calculate window size based on desired client region size
 	RECT wr;
@@ -137,20 +137,20 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noe
 {
 	switch (msg)
 	{
-	// Here we might think that we forget to destroy the window before returning
-	// But the destructor of Window is called and manages it
+		// Here we might think that we forget to destroy the window before returning
+		// But the destructor of Window is called and manages it
 	case WM_CLOSE:
 		PostQuitMessage(0);
 		return 0;
 
-	// Clear keystate when window loses focus to prevent input piling up
+		// Clear keystate when window loses focus to prevent input piling up
 	case WM_KILLFOCUS:
 		kbd.ClearState();
 		break;
 
-	/************************ KEYBOARD ********************************/
+		/************************ KEYBOARD ********************************/
 	case WM_KEYDOWN:
-	// Some keys like F10 and Alt are considered systems key so we also have to catch that
+		// Some keys like F10 and Alt are considered systems key so we also have to catch that
 	case WM_SYSKEYDOWN:
 		if (!(lParam & 0x40000000) || kbd.AutorepeatIsEnabled())
 		{
@@ -166,51 +166,67 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noe
 	case WM_CHAR:
 		kbd.OnChar(static_cast<unsigned char>(wParam));
 		break;
-	
-	/**************************** MOUSE *****************************/
+
+		/**************************** MOUSE *****************************/
 	case WM_MOUSEMOVE:
 	{
-		POINTS pt = MAKEPOINTS(lParam);
-		mouse.OnMouseMove(pt.x, pt.y);
+		const POINTS pt = MAKEPOINTS(lParam);
+		// Are we inside the window? If yes, log move, if not, capture and log a OnMouseEnter
+		if (pt.x >= 0 && pt.x < width && pt.y >= 0 && pt.y < height)
+		{
+			mouse.OnMouseMove(pt.x, pt.y);
+			if (!mouse.IsInWindow())
+			{
+				SetCapture(hWnd);
+				mouse.OnMouseEnter();
+			}
+		}
+		// We are not inside the window, if the button is down maintain capture and log move, if not log on leave and capture
+		else
+		{
+			if ((mouse.LeftIsPressed() & MK_LBUTTON) | (mouse.RightIsPressed() & MK_RBUTTON))
+			{
+				mouse.OnMouseMove(pt.x, pt.y);
+			}
+			else
+			{
+				ReleaseCapture();
+				mouse.OnMouseLeave();
+			}
+		}
 		break;
 	}
 	case WM_LBUTTONDOWN:
 	{
-		POINTS pt = MAKEPOINTS(lParam);
+		const POINTS pt = MAKEPOINTS(lParam);
 		mouse.OnLeftPressed(pt.x, pt.y);
 		break;
 	}
 	case WM_RBUTTONDOWN:
 	{
-		POINTS pt = MAKEPOINTS(lParam);
+		const POINTS pt = MAKEPOINTS(lParam);
 		mouse.OnRightPressed(pt.x, pt.y);
 		break;
 	}
 	case WM_LBUTTONUP:
 	{
-		POINTS pt = MAKEPOINTS(lParam);
+		const POINTS pt = MAKEPOINTS(lParam);
 		mouse.OnLeftReleased(pt.x, pt.y);
 		break;
 	}
 	case WM_RBUTTONUP:
 	{
-		POINTS pt = MAKEPOINTS(lParam);
+		const POINTS pt = MAKEPOINTS(lParam);
 		mouse.OnRightReleased(pt.x, pt.y);
 		break;
 	}
 	case WM_MOUSEWHEEL:
 	{
 		const POINTS pt = MAKEPOINTS(lParam);
-		if (GET_WHEEL_DELTA_WPARAM(wParam) > 0)
-		{
-			mouse.OnWheelUp(pt.x, pt.y);
-		}
-		else if (GET_WHEEL_DELTA_WPARAM(wParam) < 0)
-		{
-			mouse.OnWheelDown(pt.x, pt.y);
-		}
+		const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+		mouse.OnWheelDelta(pt.x, pt.y, delta);
 		break;
-
+	}
 	}
 	return DefWindowProc(hWnd, msg, wParam, lParam);
 }
