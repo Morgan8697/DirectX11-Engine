@@ -8,4 +8,5 @@
 
 ### 3. Render using DirectX11
    3.1 Instantiate a device and a swap chain wrapped in a Graphics class
+   
    3.2 Render using double buffering a cyclic fade of color
