@@ -87,6 +87,8 @@ Window::Window(int width, int height, const char* name) : width(width), height(h
 	}
 	// show window
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
+	// Create graphics object
+	pGfx = std::make_unique<Graphics>(hWnd);
 }
 
 Window::~Window()
@@ -100,6 +102,11 @@ void Window::SetTitle(const std::string& title)
 	{
 		throw WND_LAST_EXCEPT();
 	}
+}
+
+Graphics& Window::Gfx() const
+{
+	return *pGfx;
 }
 
 // Initial window procedure used temporarily during window creation.
