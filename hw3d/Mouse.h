@@ -92,8 +92,7 @@ private:
 	void TrimBuffer() noexcept;
 private:
 	static constexpr unsigned int bufferSize = 16u;
-	int x;
-	int y;
+	int x, y;
 	bool leftIsPressed = false;
 	bool rightIsPressed = false;
 	bool isInWindow = false;

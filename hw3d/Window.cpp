@@ -277,3 +277,22 @@ std::string Window::Exception::GetErrorString() const noexcept
 {
 	return TranslateErrorCode(hr);
 }
+
+std::optional<int> Window::ProcessMessages()
+{
+	MSG msg;
+	// While queue has messages, remove and dispatch them
+	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+	{
+		// always look for quit because PeekMessage doesnt do it implictly it only returns if there was a message or not
+		if (msg.message == WM_QUIT)
+		{
+			return msg.wParam;
+		}
+
+		TranslateMessage(&msg);
+		DispatchMessageA(&msg);
+	}
+
+	return {};
+}
