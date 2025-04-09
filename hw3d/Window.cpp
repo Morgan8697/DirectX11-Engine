@@ -104,8 +104,31 @@ void Window::SetTitle(const std::string& title)
 	}
 }
 
+std::optional<int> Window::ProcessMessages() noexcept
+{
+	MSG msg;
+	// While queue has messages, remove and dispatch them
+	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+	{
+		// always look for quit because PeekMessage doesnt do it implictly it only returns if there was a message or not
+		if (msg.message == WM_QUIT)
+		{
+			return msg.wParam;
+		}
+
+		TranslateMessage(&msg);
+		DispatchMessageA(&msg);
+	}
+
+	return {};
+}
+
 Graphics& Window::Gfx() const
 {
+	if (!pGfx)
+	{
+		throw WND_NOGFX_EXCEPT();
+	}
 	return *pGfx;
 }
 
@@ -238,33 +261,11 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noe
 	return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
-// Constructor that initializes the Exception with the line number, file name, and HRESULT error code.
-// It calls the base class constructor (WinException) and stores the HRESULT error.
-Window::Exception::Exception(int line, const char* file, HRESULT hr) noexcept : WinException(line, file), hr(hr) {}
-
-// Overrides the standard what() method from std::exception to provide a formatted error description.
-// Builds and caches a detailed error message (error code, description, file, and line) into 'whatBuffer'.
-const char* Window::Exception::what() const noexcept
-{
-	std::stringstream oss;
-	oss << "[Error Code]: " << GetErrorCode() << std::endl
-		<< "[Description]: " << GetErrorString() << std::endl
-		<< GetOriginString();
-	whatBuffer = oss.str();
-	return whatBuffer.c_str();
-}
-
-// Provides a string identifying the type of this specific exception.
-const char* Window::Exception::GetType() const noexcept
-{
-	return "Window Exception";
-}
-
 // Translates an HRESULT error code into a descriptive error string provided by the system.
 std::string Window::Exception::TranslateErrorCode(HRESULT hr) noexcept
 {
 	char* pMsgBuf = nullptr;
-	DWORD nMsgLen = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+	const DWORD nMsgLen = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 		nullptr, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<LPSTR>(&pMsgBuf), 0, nullptr);
 	if (nMsgLen == 0)
 	{
@@ -275,31 +276,39 @@ std::string Window::Exception::TranslateErrorCode(HRESULT hr) noexcept
 	return errorString;
 }
 
-HRESULT Window::Exception::GetErrorCode() const noexcept
+
+Window::HrException::HrException(int line, const char* file, HRESULT hr) noexcept : Exception(line, file), hr(hr) {}
+
+// Overrides the standard what() method from std::exception to provide a formatted error description.
+// Builds and caches a detailed error message (error code, description, file, and line) into 'whatBuffer'.
+const char* Window::HrException::what() const noexcept
+{
+	std::ostringstream oss;
+	oss << GetType() << std::endl
+		<< "[Error Code] 0x" << std::hex << std::uppercase << GetErrorCode()
+		<< std::dec << " (" << (unsigned long)GetErrorCode() << ")" << std::endl
+		<< "[Description] " << GetErrorDescription() << std::endl
+		<< GetOriginString();
+	whatBuffer = oss.str();
+	return whatBuffer.c_str();
+}
+
+const char* Window::HrException::GetType() const noexcept
+{
+	return "Custom Window Exception";
+}
+
+HRESULT Window::HrException::GetErrorCode() const noexcept
 {
 	return hr;
 }
 
-std::string Window::Exception::GetErrorString() const noexcept
+std::string Window::HrException::GetErrorDescription() const noexcept
 {
-	return TranslateErrorCode(hr);
+	return Exception::TranslateErrorCode(hr);
 }
 
-std::optional<int> Window::ProcessMessages()
+const char* Window::NoGfxException::GetType() const noexcept
 {
-	MSG msg;
-	// While queue has messages, remove and dispatch them
-	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
-	{
-		// always look for quit because PeekMessage doesnt do it implictly it only returns if there was a message or not
-		if (msg.message == WM_QUIT)
-		{
-			return msg.wParam;
-		}
-
-		TranslateMessage(&msg);
-		DispatchMessageA(&msg);
-	}
-
-	return {};
+	return "Custom Window Exception [No Graphics]";
 }
