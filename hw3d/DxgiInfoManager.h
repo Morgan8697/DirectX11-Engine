@@ -10,8 +10,8 @@ class DxgiInfoManager
 public:
 	DxgiInfoManager();
 	~DxgiInfoManager();
-	DxgiInfoManager(const DxgiInfoManager&) = delete;
-	DxgiInfoManager& operator=(const DxgiInfoManager&) = delete;
+	DxgiInfoManager( const DxgiInfoManager& ) = delete;
+	DxgiInfoManager& operator=( const DxgiInfoManager& ) = delete;
 	void Set() noexcept;
 	std::vector<std::string> GetMessages() const;
 private:

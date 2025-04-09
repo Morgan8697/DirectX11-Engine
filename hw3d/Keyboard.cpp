@@ -1,13 +1,32 @@
+/******************************************************************************************
+*	Chili Direct3D Engine																  *
+*	Copyright 2018 PlanetChili <http://www.planetchili.net>								  *
+*																						  *
+*	This file is part of Chili Direct3D Engine.											  *
+*																						  *
+*	Chili Direct3D Engine is free software: you can redistribute it and/or modify		  *
+*	it under the terms of the GNU General Public License as published by				  *
+*	the Free Software Foundation, either version 3 of the License, or					  *
+*	(at your option) any later version.													  *
+*																						  *
+*	The Chili Direct3D Engine is distributed in the hope that it will be useful,		  *
+*	but WITHOUT ANY WARRANTY; without even the implied warranty of						  *
+*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the						  *
+*	GNU General Public License for more details.										  *
+*																						  *
+*	You should have received a copy of the GNU General Public License					  *
+*	along with The Chili Direct3D Engine.  If not, see <http://www.gnu.org/licenses/>.    *
+******************************************************************************************/
 #include "Keyboard.h"
 
-bool Keyboard::KeyIsPressed(unsigned char keycode) const noexcept
+bool Keyboard::KeyIsPressed( unsigned char keycode ) const noexcept
 {
 	return keystates[keycode];
 }
 
 Keyboard::Event Keyboard::ReadKey() noexcept
 {
-	if (keybuffer.size() > 0u)
+	if( keybuffer.size() > 0u )
 	{
 		Keyboard::Event e = keybuffer.front();
 		keybuffer.pop();
@@ -15,7 +34,6 @@ Keyboard::Event Keyboard::ReadKey() noexcept
 	}
 	else
 	{
-		// return an event with an invalid Type
 		return Keyboard::Event();
 	}
 }
@@ -27,11 +45,11 @@ bool Keyboard::KeyIsEmpty() const noexcept
 
 char Keyboard::ReadChar() noexcept
 {
-	if (keybuffer.size() > 0u)
+	if( charbuffer.size() > 0u )
 	{
-		unsigned char e = charbuffer.front();
-		keybuffer.pop();
-		return e;
+		unsigned char charcode = charbuffer.front();
+		charbuffer.pop();
+		return charcode;
 	}
 	else
 	{
@@ -56,8 +74,8 @@ void Keyboard::FlushChar() noexcept
 
 void Keyboard::Flush() noexcept
 {
-	FlushChar();
 	FlushKey();
+	FlushChar();
 }
 
 void Keyboard::EnableAutorepeat() noexcept
@@ -75,24 +93,24 @@ bool Keyboard::AutorepeatIsEnabled() const noexcept
 	return autorepeatEnabled;
 }
 
-void Keyboard::OnKeyPressed(unsigned char keycode) noexcept
+void Keyboard::OnKeyPressed( unsigned char keycode ) noexcept
 {
 	keystates[keycode] = true;
-	keybuffer.push(Keyboard::Event(Keyboard::Event::Type::Press, keycode));
-	TrimBuffer(keybuffer);
+	keybuffer.push( Keyboard::Event( Keyboard::Event::Type::Press,keycode ) );
+	TrimBuffer( keybuffer );
 }
 
-void Keyboard::OnKeyReleased(unsigned char keycode) noexcept
+void Keyboard::OnKeyReleased( unsigned char keycode ) noexcept
 {
 	keystates[keycode] = false;
-	keybuffer.push(Keyboard::Event(Keyboard::Event::Type::Release, keycode));
-	TrimBuffer(keybuffer);
+	keybuffer.push( Keyboard::Event( Keyboard::Event::Type::Release,keycode ) );
+	TrimBuffer( keybuffer );
 }
 
-void Keyboard::OnChar(char character) noexcept
+void Keyboard::OnChar( char character ) noexcept
 {
-	charbuffer.push(character);
-	TrimBuffer(charbuffer);
+	charbuffer.push( character );
+	TrimBuffer( charbuffer );
 }
 
 void Keyboard::ClearState() noexcept
@@ -100,12 +118,12 @@ void Keyboard::ClearState() noexcept
 	keystates.reset();
 }
 
-//Templated so that it works for both buffers instead of doing two different methods
 template<typename T>
-void Keyboard::TrimBuffer(std::queue<T>& buffer) noexcept
+void Keyboard::TrimBuffer( std::queue<T>& buffer ) noexcept
 {
-	while (buffer.size() > bufferSize)
+	while( buffer.size() > bufferSize )
 	{
 		buffer.pop();
 	}
 }
+

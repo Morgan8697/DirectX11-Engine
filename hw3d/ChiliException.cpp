@@ -17,17 +17,44 @@
 *	You should have received a copy of the GNU General Public License					  *
 *	along with The Chili Direct3D Engine.  If not, see <http://www.gnu.org/licenses/>.    *
 ******************************************************************************************/
-#pragma once
-#include <unordered_map>
-#include <string>
+#include "ChiliException.h"
+#include <sstream>
 
-#include "ChiliWin.h"
 
-class WindowsMessageMap
+ChiliException::ChiliException( int line,const char* file ) noexcept
+	:
+	line( line ),
+	file( file )
+{}
+
+const char* ChiliException::what() const noexcept
 {
-public:
-	WindowsMessageMap() noexcept;
-	std::string operator()( DWORD msg,LPARAM lp,WPARAM wp ) const noexcept;
-private:
-	std::unordered_map<DWORD,std::string> map;
-};
+	std::ostringstream oss;
+	oss << GetType() << std::endl
+		<< GetOriginString();
+	whatBuffer = oss.str();
+	return whatBuffer.c_str();
+}
+
+const char* ChiliException::GetType() const noexcept
+{
+	return "Chili Exception";
+}
+
+int ChiliException::GetLine() const noexcept
+{
+	return line;
+}
+
+const std::string& ChiliException::GetFile() const noexcept
+{
+	return file;
+}
+
+std::string ChiliException::GetOriginString() const noexcept
+{
+	std::ostringstream oss;
+	oss << "[File] " << file << std::endl
+		<< "[Line] " << line;
+	return oss.str();
+}

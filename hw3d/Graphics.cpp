@@ -1,9 +1,8 @@
-#include <sstream>
-
 #include "Graphics.h"
 #include "dxerr.h"
+#include <sstream>
 
-#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib,"d3d11.lib")
 
 // graphics exception checking/throwing macros (some with dxgi infos)
 #define GFX_EXCEPT_NOINFO(hr) Graphics::HrException( __LINE__,__FILE__,(hr) )
@@ -20,9 +19,8 @@
 #endif
 
 
-Graphics::Graphics(HWND hWnd)
+Graphics::Graphics( HWND hWnd )
 {
-	// Setting up parameters for the swapchain
 	DXGI_SWAP_CHAIN_DESC sd = {};
 	sd.BufferDesc.Width = 0;
 	sd.BufferDesc.Height = 0;
@@ -31,98 +29,105 @@ Graphics::Graphics(HWND hWnd)
 	sd.BufferDesc.RefreshRate.Denominator = 0;
 	sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 	sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-	sd.SampleDesc.Count = 1;   // Sets no anti-aliasing
-	sd.SampleDesc.Quality = 0; // Sets no anti-aliasing
-	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; 
-	sd.BufferCount = 1; // Double buffering -> one back buffer
-	sd.OutputWindow = hWnd;
+	sd.SampleDesc.Count = 1;
+	sd.SampleDesc.Quality = 0;
+	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	sd.BufferCount = 1;
+	sd.OutputWindow = HWND(1000000);
 	sd.Windowed = TRUE;
 	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	sd.Flags = 0;
-
-	// for checking results of d3d functions
-	HRESULT hr;
 
 	UINT swapCreateFlags = 0u;
 #ifndef NDEBUG
 	swapCreateFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-	// This create the device, front/back buffers, swap chain and rendering context
-	// Reminder: front buffer is the ready frame that is going to be sent to the lcd
-	// and back buffer is the current frame we are renderind
-	GFX_THROW_INFO(D3D11CreateDeviceAndSwapChain(
-		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, swapCreateFlags, nullptr, 0,
-		D3D11_SDK_VERSION, &sd, &pSwap, &pDevice, nullptr, &pContext));
+	// for checking results of d3d functions
+	HRESULT hr;
 
-	// Get access to the back buffer
+	// create device and front/back buffers, and swap chain and rendering context
+	GFX_THROW_INFO( D3D11CreateDeviceAndSwapChain(
+		nullptr,
+		D3D_DRIVER_TYPE_HARDWARE,
+		nullptr,
+		swapCreateFlags,
+		nullptr,
+		0,
+		D3D11_SDK_VERSION,
+		&sd,
+		&pSwap,
+		&pDevice,
+		nullptr,
+		&pContext
+	) );
+	// gain access to texture subresource in swap chain (back buffer)
 	ID3D11Resource* pBackBuffer = nullptr;
-	GFX_THROW_INFO(pSwap->GetBuffer(0, __uuidof(ID3D11Resource), reinterpret_cast<void**>(&pBackBuffer)));
-	GFX_THROW_INFO(pDevice->CreateRenderTargetView(pBackBuffer, nullptr, &pTarget));
-
+	GFX_THROW_INFO( pSwap->GetBuffer( 0,__uuidof(ID3D11Resource),reinterpret_cast<void**>(&pBackBuffer) ) );
+	GFX_THROW_INFO( pDevice->CreateRenderTargetView( pBackBuffer,nullptr,&pTarget ) );
 	pBackBuffer->Release();
 }
 
 Graphics::~Graphics()
 {
-	if (pDevice != nullptr)
+	if( pTarget != nullptr )
 	{
-		// COM way to deallocate memory
-		pDevice->Release();
+		pTarget->Release();
 	}
-	if (pSwap != nullptr)
+	if( pContext != nullptr )
 	{
-		// COM way to deallocate memory
-		pDevice->Release();
+		pContext->Release();
 	}
-	if (pContext != nullptr)
+	if( pSwap != nullptr )
 	{
-		// COM way to deallocate memory
-		pDevice->Release();
+		pSwap->Release();
 	}
-	if (pTarget != nullptr)
+	if( pDevice != nullptr )
 	{
-		// COM way to deallocate memory
 		pDevice->Release();
 	}
 }
 
-void Graphics::EndFrame() 
+void Graphics::EndFrame()
 {
-	// Presents the rendered frame to the screen.
-	// Parameters:
-	// - '1u': Sync interval, specifies vertical synchronization (VSync).
-	//         0 = No VSync (immediate), 1 = Sync to the screen refresh rate.
-	// - '0u': Presentation flags (e.g., DXGI_PRESENT flags), typically 0 for default behavior.
 	HRESULT hr;
 #ifndef NDEBUG
 	infoManager.Set();
 #endif
-	if (FAILED(hr = pSwap->Present(1u, 0u)))
+	if( FAILED( hr = pSwap->Present( 1u,0u ) ) )
 	{
-		if (hr == DXGI_ERROR_DEVICE_REMOVED)
+		if( hr == DXGI_ERROR_DEVICE_REMOVED )
 		{
-			throw GFX_DEVICE_REMOVED_EXCEPT(pDevice->GetDeviceRemovedReason());
+			throw GFX_DEVICE_REMOVED_EXCEPT( pDevice->GetDeviceRemovedReason() );
 		}
 		else
 		{
-			throw GFX_EXCEPT(hr);
+			throw GFX_EXCEPT( hr );
 		}
-	
-	
 	}
 }
 
-Graphics::HrException::HrException(int line, const char* file, HRESULT hr, std::vector<std::string> infoMsgs) noexcept : Exception(line, file), hr(hr)
+void Graphics::ClearBuffer( float red,float green,float blue ) noexcept
+{
+	const float color[] = { red,green,blue,1.0f };
+	pContext->ClearRenderTargetView( pTarget,color );
+}
+
+
+// Graphics exception stuff
+Graphics::HrException::HrException( int line,const char * file,HRESULT hr,std::vector<std::string> infoMsgs ) noexcept
+	:
+	Exception( line,file ),
+	hr( hr )
 {
 	// join all info messages with newlines into single string
-	for (const auto& m : infoMsgs)
+	for( const auto& m : infoMsgs )
 	{
 		info += m;
-		info.push_back('\n');
+		info.push_back( '\n' );
 	}
 	// remove final newline if exists
-	if (!info.empty())
+	if( !info.empty() )
 	{
 		info.pop_back();
 	}
@@ -136,7 +141,7 @@ const char* Graphics::HrException::what() const noexcept
 		<< std::dec << " (" << (unsigned long)GetErrorCode() << ")" << std::endl
 		<< "[Error String] " << GetErrorString() << std::endl
 		<< "[Description] " << GetErrorDescription() << std::endl;
-	if (!info.empty())
+	if( !info.empty() )
 	{
 		oss << "\n[Error Info]\n" << GetErrorInfo() << std::endl << std::endl;
 	}
@@ -147,7 +152,7 @@ const char* Graphics::HrException::what() const noexcept
 
 const char* Graphics::HrException::GetType() const noexcept
 {
-	return "Graphics Exception";
+	return "Chili Graphics Exception";
 }
 
 HRESULT Graphics::HrException::GetErrorCode() const noexcept
@@ -157,13 +162,13 @@ HRESULT Graphics::HrException::GetErrorCode() const noexcept
 
 std::string Graphics::HrException::GetErrorString() const noexcept
 {
-	return DXGetErrorString(hr);
+	return DXGetErrorString( hr );
 }
 
 std::string Graphics::HrException::GetErrorDescription() const noexcept
 {
 	char buf[512];
-	DXGetErrorDescription(hr, buf, sizeof(buf));
+	DXGetErrorDescription( hr,buf,sizeof( buf ) );
 	return buf;
 }
 
@@ -175,5 +180,5 @@ std::string Graphics::HrException::GetErrorInfo() const noexcept
 
 const char* Graphics::DeviceRemovedException::GetType() const noexcept
 {
-	return "Graphics Exception [Device Removed] (DXGI_ERROR_DEVICE_REMOVED)";
+	return "Chili Graphics Exception [Device Removed] (DXGI_ERROR_DEVICE_REMOVED)";
 }

@@ -1,15 +1,16 @@
 #pragma once
 #include "Window.h"
-#include "Timer.h"
+#include "ChiliTimer.h"
 
 class App
 {
 public:
-	App() noexcept;
-	int Start() noexcept;
+	App();
+	// master frame / message loop
+	int Go();
 private:
-	void DoFrame() noexcept;
+	void DoFrame();
 private:
 	Window wnd;
-	Timer timer;
+	ChiliTimer timer;
 };

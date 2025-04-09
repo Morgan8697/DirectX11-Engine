@@ -1,69 +1,46 @@
-#include <Windows.h>
-#include <sstream>
-
-#include "WindowsMessageMap.h"
-#include "Window.h"
+/******************************************************************************************
+*	Chili Direct3D Engine																  *
+*	Copyright 2018 PlanetChili <http://www.planetchili.net>								  *
+*																						  *
+*	This file is part of Chili Direct3D Engine.											  *
+*																						  *
+*	Chili Direct3D Engine is free software: you can redistribute it and/or modify		  *
+*	it under the terms of the GNU General Public License as published by				  *
+*	the Free Software Foundation, either version 3 of the License, or					  *
+*	(at your option) any later version.													  *
+*																						  *
+*	The Chili Direct3D Engine is distributed in the hope that it will be useful,		  *
+*	but WITHOUT ANY WARRANTY; without even the implied warranty of						  *
+*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the						  *
+*	GNU General Public License for more details.										  *
+*																						  *
+*	You should have received a copy of the GNU General Public License					  *
+*	along with The Chili Direct3D Engine.  If not, see <http://www.gnu.org/licenses/>.    *
+******************************************************************************************/
 #include "App.h"
 
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+int CALLBACK WinMain(
+	HINSTANCE hInstance,
+	HINSTANCE hPrevInstance,
+	LPSTR     lpCmdLine,
+	int       nCmdShow )
 {
-	static WindowsMessageMap mm;
-	OutputDebugString((mm(msg, lParam, wParam).c_str()));
-	switch (msg)
+	try
 	{
-	case WM_CLOSE: 
-		PostQuitMessage(1); 
-		break;
-
-	case WM_KEYDOWN:
-		if (wParam == 'F')
-		{
-			SetWindowText(hWnd, "Respects");
-		}
-		break;
-	case WM_KEYUP:
-		if (wParam == 'F')
-		{
-			SetWindowText(hWnd, "Danger Field");
-		}
-		break;
-	case WM_CHAR:
-		{
-			static std::string title;
-			title.push_back((char)wParam);
-			SetWindowText(hWnd, title.c_str());
-		}
-		break;
-	case WM_LBUTTONDOWN:
-		{
-			POINTS pt = MAKEPOINTS(lParam);
-			std::ostringstream oss;
-			oss << "(" << pt.x << "," << pt.y << ")";
-			SetWindowText(hWnd, oss.str().c_str());
-		}
-		break;
+		return App{}.Go();
 	}
-	
-	return DefWindowProc(hWnd, msg, wParam, lParam);
-}
-
-int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-{
-	try 
+	catch( const ChiliException& e )
 	{
-		return App{}.Start();
+		MessageBox( nullptr,e.what(),e.GetType(),MB_OK | MB_ICONEXCLAMATION );
 	}
-	catch (const WinException& e)
+	catch( const std::exception& e )
 	{
-		MessageBox(nullptr, e.what(), e.GetType(), MB_OK | MB_ICONEXCLAMATION);
+		MessageBox( nullptr,e.what(),"Standard Exception",MB_OK | MB_ICONEXCLAMATION );
 	}
-	catch (const std::exception& e)
+	catch( ... )
 	{
-		MessageBox(nullptr, e.what(), "Standard Exception", MB_OK | MB_ICONEXCLAMATION);
+		MessageBox( nullptr,"No details available","Unknown Exception",MB_OK | MB_ICONEXCLAMATION );
 	}
-	catch (...)
-	{
-		MessageBox(nullptr, "No details available", "Unknown Exception", MB_OK | MB_ICONEXCLAMATION);
-	}
+	return -1;
 }
